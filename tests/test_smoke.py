@@ -42,6 +42,8 @@ from trading_env.env.trading_env import (
     MANAGE_TP,
     EPISODE_EQUITY_GAIN_LIMIT,
     EPISODE_EQUITY_LOSS_LIMIT,
+    EPISODE_START_HOUR,
+    EPISODE_END_HOUR,
 )
 
 # ---------------------------------------------------------------------------
@@ -87,11 +89,14 @@ def _make_mt5_csv(n_days: int = 3) -> str:
 def _make_full_day_mt5(
     day: date, n_bars: int = 80, base_price: float = 1.05000
 ) -> pd.DataFrame:
-    """Return a DataFrame with *n_bars* M1 bars for *day* starting at 00:00 UTC."""
+    """Return a DataFrame with *n_bars* M1 bars for *day* starting at 08:00 UTC."""
     rows = []
     price = base_price
     for i in range(n_bars):
-        dt = datetime(day.year, day.month, day.day, i // 60, i % 60, 0,
+        # Start bars at 08:00 UTC so they fall within the episode window (08:00–22:00)
+        total_minutes = 8 * 60 + i
+        dt = datetime(day.year, day.month, day.day,
+                      total_minutes // 60, total_minutes % 60, 0,
                       tzinfo=timezone.utc)
         spread_pts = 8
         rows.append(
@@ -512,3 +517,26 @@ class TestEURUSDTradingEnv:
         # Should have closed 25% of initial lots
         expected_remaining = round(initial_lots - initial_lots * 0.25, 10)
         assert abs(env._lots_remaining - expected_remaining) < 1e-6 or env._tp_state == 1
+
+    def test_episode_starts_at_0800_ends_at_or_before_2200(self) -> None:
+        """First bar of an episode must be 08:00 UTC; last bar must be <= 22:00 UTC."""
+        day = date(2025, 1, 8)
+        df = _make_full_day_mt5(day, n_bars=80)
+        env = EURUSDTradingEnv(df, initial_equity=10_000.0)
+        _obs, info = env.reset(options={"day_date": day})
+
+        assert info["episode_start_dt"] != "", "episode_start_dt should be set"
+        assert info["episode_end_dt"] != "", "episode_end_dt should be set"
+
+        first_bar = pd.Timestamp(info["episode_start_dt"])
+        last_bar = pd.Timestamp(info["episode_end_dt"])
+
+        assert first_bar.hour == EPISODE_START_HOUR and first_bar.minute == 0, (
+            f"Episode should start at {EPISODE_START_HOUR:02d}:00 UTC, got {first_bar}"
+            # For M1 data a bar at exactly HH:00 always exists at the start of each hour,
+            # so the first bar in the [08:00, 22:00] window will be 08:00:00.
+        )
+        last_bar_minutes = last_bar.hour * 60 + last_bar.minute
+        assert last_bar_minutes <= EPISODE_END_HOUR * 60, (
+            f"Episode should end at or before {EPISODE_END_HOUR:02d}:00 UTC, got {last_bar}"
+        )

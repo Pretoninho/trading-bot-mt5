@@ -5,8 +5,9 @@ Gymnasium-compatible EURUSD M1 trading environment.
 
 Episode
 -------
-One UTC calendar day.  Terminates early when equity reaches +2 % or -2 %
-relative to start-of-day equity.
+One UTC trading session per day: **08:00–22:00 UTC** (inclusive).
+Terminates early when equity reaches +2 % or -2 % relative to
+session-start equity.
 
 Actions (discrete)
 ------------------
@@ -100,6 +101,8 @@ N_ACTIONS = 6
 
 EPISODE_EQUITY_GAIN_LIMIT = 0.02   # +2 % → episode ends
 EPISODE_EQUITY_LOSS_LIMIT = -0.02  # -2 % → episode ends
+EPISODE_START_HOUR = 8             # episode begins at 08:00 UTC
+EPISODE_END_HOUR = 22              # episode ends at 22:00 UTC (inclusive)
 INVALID_ACTION_PENALTY = -1e-4
 ATR_PERIOD = 14
 ATR_SL_MULTIPLIER = 2.0
@@ -205,9 +208,22 @@ class EURUSDTradingEnv(gym.Env):
             idx = self.np_random.integers(0, len(all_days))
             day = all_days[idx]
 
-        self._day_indices = self.df.index[
-            self.df["dt"].dt.date == day
-        ].tolist()
+        # Filter to bars within the episode window: 08:00–22:00 UTC
+        episode_start_min = EPISODE_START_HOUR * 60  # 480
+        episode_end_min = EPISODE_END_HOUR * 60       # 1320
+
+        day_mask = self.df["dt"].dt.date == day
+
+        if "time_of_day" in self.df.columns:
+            # Preferred: pre-computed column added by market_loader or test helpers
+            time_of_day = self.df["time_of_day"]
+        else:
+            # Fallback: compute on-the-fly for DataFrames built without the loader
+            time_of_day = self.df["dt"].dt.hour * 60 + self.df["dt"].dt.minute
+
+        time_mask = time_of_day.between(episode_start_min, episode_end_min)
+
+        self._day_indices = self.df.index[day_mask & time_mask].tolist()
 
         if len(self._day_indices) < WINDOW + 1:
             # Not enough history — fall back to a full day if possible
@@ -224,7 +240,18 @@ class EURUSDTradingEnv(gym.Env):
         self._reset_position()
 
         obs = self._get_obs()
-        info = {"day": str(day), "equity": self._equity}
+        episode_start_dt = (
+            str(self.df.iloc[self._day_indices[0]]["dt"]) if self._day_indices else ""
+        )
+        episode_end_dt = (
+            str(self.df.iloc[self._day_indices[-1]]["dt"]) if self._day_indices else ""
+        )
+        info = {
+            "day": str(day),
+            "equity": self._equity,
+            "episode_start_dt": episode_start_dt,
+            "episode_end_dt": episode_end_dt,
+        }
         return obs, info
 
     def step(
