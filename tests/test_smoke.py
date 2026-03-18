@@ -42,6 +42,8 @@ from trading_env.env.trading_env import (
     MANAGE_TP,
     EPISODE_EQUITY_GAIN_LIMIT,
     EPISODE_EQUITY_LOSS_LIMIT,
+    EPISODE_START_MIN,
+    EPISODE_END_MIN,
 )
 
 # ---------------------------------------------------------------------------
@@ -87,11 +89,20 @@ def _make_mt5_csv(n_days: int = 3) -> str:
 def _make_full_day_mt5(
     day: date, n_bars: int = 80, base_price: float = 1.05000
 ) -> pd.DataFrame:
-    """Return a DataFrame with *n_bars* M1 bars for *day* starting at 00:00 UTC."""
+    """Return a DataFrame with *n_bars* M1 bars for *day* starting at 08:00 UTC.
+
+    Bars begin at the episode start time (08:00 UTC) so that the environment
+    ``reset()`` correctly finds them within the 08:00–22:00 UTC window.
+    ``n_bars`` is silently capped at the episode window size (840 bars = 14 h).
+    """
+    _max_bars = EPISODE_END_MIN - EPISODE_START_MIN + 1  # 841 bars (08:00–22:00 inclusive)
+    n_bars = min(n_bars, _max_bars)
     rows = []
     price = base_price
     for i in range(n_bars):
-        dt = datetime(day.year, day.month, day.day, i // 60, i % 60, 0,
+        minute_of_day = EPISODE_START_MIN + i  # offset from 08:00 UTC
+        dt = datetime(day.year, day.month, day.day,
+                      minute_of_day // 60, minute_of_day % 60, 0,
                       tzinfo=timezone.utc)
         spread_pts = 8
         rows.append(
@@ -380,6 +391,16 @@ class TestEURUSDTradingEnv:
         df = _make_full_day_mt5(day, n_bars=n_bars)
         env = EURUSDTradingEnv(df, initial_equity=10_000.0)
         return env
+
+    def test_reset_starts_at_0800(self) -> None:
+        """Episode must begin at 08:00 UTC (time_of_day == EPISODE_START_MIN)."""
+        env = self._make_env()
+        env.reset(options={"day_date": date(2025, 1, 8)})
+        first_bar = env.df.iloc[env._bar_idx]
+        assert first_bar["time_of_day"] == EPISODE_START_MIN, (
+            f"Expected episode to start at 08:00 UTC (time_of_day={EPISODE_START_MIN}), "
+            f"got time_of_day={first_bar['time_of_day']}"
+        )
 
     def test_reset_returns_valid_obs(self) -> None:
         env = self._make_env()
