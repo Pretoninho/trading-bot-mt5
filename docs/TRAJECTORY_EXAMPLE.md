@@ -57,6 +57,7 @@ a(0) = sample(probs) = action 1 (OPEN_LONG)  # 60% probability
 ```
 
 **Action:** OPEN_LONG
+
 - Entry: mid (close from bar M1) = 1.0850
 - Bid-Ask: Bid=1.08485, Ask=1.08515 (spread=3 pips)
 - **Fill at Ask:** 1.08515
@@ -100,7 +101,7 @@ $$r(0) = \frac{\text{equity}(1) - \text{equity}(0)}{\text{equity}(0)} - 10^{-4} 
 
 ### Step 1 → Step 2: Position Moves (08:02-08:15 UTC, Various Steps)
 
-```
+```python
 08:02: Price = 1.0852 (+2 pips)
   S(2): r_multiple_unrealized = (1.0852 - 1.08515) / 0.005 = 0.001R
   Mark-to-market: PnL = 0.00005 × 200,000 = $10 ✓
@@ -163,7 +164,7 @@ $$r(0) = \frac{\text{equity}(1) - \text{equity}(0)}{\text{equity}(0)} - 10^{-4} 
 
 ### Full Trajectory Summary
 
-```
+```python
 S(0) → a(0)=OPEN_LONG → r(0)=0.000
 S(1) → a(1)=MANAGE_TP → r(1)=+0.001
 S(2) → a(2)=HOLD       → r(2)=0.000
@@ -185,6 +186,7 @@ S(1439) → Episode END (EOD)
 $$G(0) = r(0) + r(1) + r(2) + ... + r(59) + ... + r(1439)$$
 
 Assuming:
+
 - Non-zero rewards only at entry/TP closes
 - Rest are ~0 (holding)
 
@@ -192,6 +194,7 @@ $$G(0) ≈ 0 + 0.001 + 0 + ... + 0.025 + 0 + ... + 0.175 + 0 + ... + 0$$
 $$G(0) ≈ +0.175 \text{ (total return = +17.5%)}$$
 
 But equity was:
+
 - Start: $10,000
 - After TP1: $10,250 (2.5% gain)
 - After TP2: $11,750 (17.5% gain)
@@ -266,6 +269,7 @@ optimizer.step()  # ← update weights: W := W - α∇W
 ### Result
 
 After this episode:
+
 - **Actor learns:** opening long in S(0), taking TPs in S(11) & S(59), protecting in S(26) had **high advantage**
   - Policy will increase probability of similar actions in similar states
   - π(OPEN_LONG | "breakout week, safe, tradable") ↑
@@ -288,6 +292,7 @@ After this episode:
 5. **Exploration:** Softmax policy (stochastic) + temperature decay → explore then exploit
 
 This one-day example shows why actor-critic works well:
+
 - Actor gets policy gradient signal from **actual rewards** ✓
 - Critic stabilizes learning via value bootstrapping ✓
 - Advantage reduces variance ✓
