@@ -1,6 +1,6 @@
 # trading-bot-mt5
 
-Robot de trading sur MT5 avec RL — Gymnasium-compatible EURUSD M1 environment with PPO support.
+Gymnasium-compatible EURUSD M1 reinforcement-learning trading environment with PPO support.
 
 ---
 
@@ -56,9 +56,10 @@ pip install -r requirements.txt
 
 ## Step 1 — Export MT5 M1 data
 
-1. Open **MetaTrader 5** → *Tools → History Center*.
-2. Select **EURUSD**, timeframe **M1**.
-3. Right-click → *Export* → choose space-separated CSV format.
+1. Open **MetaTrader 5** → *Tools* → *History Center*.
+2. Select **EURUSD** in the left panel, timeframe **M1**.
+3. Ensure you have downloaded the data (right-click → *Download*).
+4. Right-click on the EURUSD data → *Export* → select **Comma- or space-separated** CSV format and save.
 
 The exported file has the format:
 
@@ -71,11 +72,11 @@ The exported file has the format:
 
 ## Step 2 — Download FXStreet calendar
 
-1. Go to <https://www.fxstreet.com/economic-calendar>.
-2. Set the timezone to **UTC / GMT+0**.
-3. Filter: **Impact = High**, **Currencies = USD, EUR**.
-4. Export by quarter (max ~3 months per download) — you will get files named
-   e.g. `fx_q1.csv`, `fx_q2.csv`, `fx_q3.csv`, `fx_q4.csv`.
+1. Go to [FXStreet Economic Calendar](https://www.fxstreet.com/economic-calendar) (or search "FXStreet Economic Calendar").
+2. Set the timezone to **UTC / GMT+0** in the calendar settings.
+3. Filter events: **Impact = High**, **Currencies = USD, EUR**.
+4. Export by quarter (**max ~3 months per download**) — you will receive files named
+   e.g. `q1_2024.csv`, `q2_2024.csv`, `q3_2024.csv`, `q4_2024.csv` (exact naming varies).
 
 FXStreet CSV columns: `Id, Start, Name, Impact, Currency`
 (`Start` is `MM/DD/YYYY HH:MM:SS` in UTC).
@@ -168,9 +169,16 @@ print("Final equity:", info["equity"])
 
 Shape: `(391,)` = 64 bars × 6 features + 7 scalars.
 
-**Bar features** (per bar): `open_ret, high_ret, low_ret, close_ret, spread_price, atr14`
+**Bar features** (normalized, per bar): `open_ret, high_ret, low_ret, close_ret, spread_price, atr14`
 
-**Scalar features**: `is_tradable_now, is_safe_week, has_breakout, tp_state_norm, break_even_set, runner_trailing_active, r_multiple_unrealized`
+**Scalar features** (7 total):
+- `is_tradable_now` — Boolean flag (1.0 or 0.0) if agent can trade now
+- `is_safe_week` — Boolean flag if current ISO week is free of high-impact news
+- `has_breakout` — Boolean flag if this week's Tuesday closed outside Monday's range
+- `tp_state_norm` — Current TP level (0.0 = no TP, 0.5 = TP1 taken, 1.0 = TP2 taken)
+- `break_even_set` — Boolean flag if stop-loss has been moved to break-even
+- `runner_trailing_active` — Boolean flag if trailing stop is active
+- `r_multiple_unrealized` — Current unrealized PnL in risk multiples (e.g., 0.5R, 1.5R)
 
 ---
 
