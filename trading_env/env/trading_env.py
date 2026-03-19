@@ -110,8 +110,10 @@ PARTIAL_CLOSE_FRACTION = 0.25  # each TP closes 25 % of initial lots
 WINDOW = 64  # observation bar-window size
 N_BAR_FEATURES = 6  # open_ret, high_ret, low_ret, close_ret, spread, atr14_norm
 SCALAR_FEATURES = 7
+# Advanced engineered features (65): 20 volatility + 30 trend + 15 market structure
+N_ENGINEERED_FEATURES = 65
 
-OBS_SIZE = WINDOW * N_BAR_FEATURES + SCALAR_FEATURES
+OBS_SIZE = WINDOW * N_BAR_FEATURES + SCALAR_FEATURES + N_ENGINEERED_FEATURES
 
 
 # ---------------------------------------------------------------------------
@@ -689,7 +691,45 @@ class EURUSDTradingEnv(gym.Env):
             dtype=np.float32,
         )
 
-        return np.concatenate([bar_flat, scalars])
+        # --- Engineered features (20 + 30 + 15 = 65D) ---
+        eng_features = self._get_engineered_features()
+
+        return np.concatenate([bar_flat, scalars, eng_features])
+
+    def _get_engineered_features(self) -> np.ndarray:
+        """Extract engineered features for current bar.
+
+        Returns
+        -------
+        np.ndarray
+            Shape (65,) with: vol_0..19, trend_0..29, market_0..14
+        """
+        cur_bar = self.df.iloc[self._bar_idx]
+
+        # Extract the 65 engineered feature columns
+        eng_cols = []
+        for col_name in self.df.columns:
+            if col_name.startswith(("vol_", "trend_", "market_")):
+                eng_cols.append(col_name)
+
+        # If no features found in DataFrame, return zeros
+        if not eng_cols:
+            return np.zeros(N_ENGINEERED_FEATURES, dtype=np.float32)
+
+        # Extract and concatenate
+        eng_features = np.array(
+            [float(cur_bar[col]) if col in cur_bar.index else 0.0 for col in eng_cols],
+            dtype=np.float32,
+        )
+
+        # Ensure we have exactly N_ENGINEERED_FEATURES (pad with zeros if needed)
+        if len(eng_features) < N_ENGINEERED_FEATURES:
+            eng_features = np.concatenate([
+                eng_features,
+                np.zeros(N_ENGINEERED_FEATURES - len(eng_features), dtype=np.float32)
+            ])
+
+        return eng_features[:N_ENGINEERED_FEATURES]
 
     # ------------------------------------------------------------------
     # Render helpers

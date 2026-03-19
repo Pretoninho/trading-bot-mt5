@@ -22,7 +22,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Union
 
+import numpy as np
 import pandas as pd
+
+from trading_env.utils.feature_engineering import FeatureEngineer
 
 # ---------------------------------------------------------------------------
 # EURUSD instrument constants
@@ -39,6 +42,7 @@ PIP_SIZE = 0.0001  # 1 pip = 10 points
 def load_mt5_m1_csv(
     path: Union[str, Path],
     unsafe_weeks_path: Union[str, Path, None] = None,
+    compute_features: bool = True,
 ) -> pd.DataFrame:
     """Parse an MT5 M1 CSV export and return an enriched DataFrame.
 
@@ -49,6 +53,9 @@ def load_mt5_m1_csv(
     unsafe_weeks_path:
         Optional path to ``unsafe_weeks.csv`` (columns ``iso_year, iso_week``).
         When provided, a boolean ``is_safe_week`` column is added.
+    compute_features:
+        If True, compute advanced features (volatility, trend, market structure).
+        Adds 65 new columns to the DataFrame (20 + 30 + 15 features).
 
     Returns
     -------
@@ -61,13 +68,20 @@ def load_mt5_m1_csv(
     * ``weekday``        — Day of week (Mon=0 … Sun=6).
     * ``time_of_day``    — Pandas Timedelta representing time within the day.
     * ``is_safe_week``   — 1 if no high-impact news on Wed/Thu; else 0.
-                           Only present when *unsafe_weeks_path* is supplied.
+    * **Feature columns** (if compute_features=True):
+      - vol_* (20 volatility features)
+      - trend_* (30 trend features)
+      - market_* (15 market structure features)
     """
     df = _parse_raw_csv(path)
     df = _add_datetime_fields(df)
 
     if unsafe_weeks_path is not None:
         df = _merge_safe_week(df, unsafe_weeks_path)
+
+    # Compute advanced features if requested
+    if compute_features:
+        df = _add_engineered_features(df)
 
     df = df.set_index("dt", drop=False)
     df.index.name = "datetime"
@@ -131,4 +145,34 @@ def _merge_safe_week(
     df = df.merge(unsafe, on=["iso_year", "iso_week"], how="left")
     df["is_safe_week"] = (df["_unsafe"].isna()).astype(int)
     df = df.drop(columns=["_unsafe"])
+    return df
+
+
+def _add_engineered_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Compute and add advanced features (volatility, trend, market structure).
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Must contain OHLC columns: open, high, low, close, spread_price.
+
+    Returns
+    -------
+    pd.DataFrame
+        Input dataframe with 65 new columns added:
+        - vol_0 to vol_19: volatility features
+        - trend_0 to trend_29: trend features
+        - market_0 to market_14: market structure features
+    """
+    # Compute all feature groups
+    vol_feat, trend_feat, market_feat = FeatureEngineer.compute_all_features(df)
+
+    # Add to dataframe with prefixed columns
+    for i in range(20):
+        df[f"vol_{i}"] = vol_feat[:, i]
+    for i in range(30):
+        df[f"trend_{i}"] = trend_feat[:, i]
+    for i in range(15):
+        df[f"market_{i}"] = market_feat[:, i]
+
     return df
