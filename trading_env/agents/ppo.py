@@ -22,7 +22,7 @@ References:
 """
 
 import numpy as np
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Any, Optional
 import warnings
 
 
