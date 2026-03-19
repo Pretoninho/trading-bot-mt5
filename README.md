@@ -153,10 +153,63 @@ print("Final equity:", info["equity"])
 
 ---
 
+## Markov Decision Process (MDP)
+
+This environment is formulated as a **finite-horizon Markov Decision Process**:
+
+### Agent Interaction Loop
+
+```
+State S(t) → Agent selects Action a(t) → Environment executes → Reward r(t) ↓
+State S(t+1) → Agent selects Action a(t+1) → ... → Reward r(t+1) ↓
+...continues until episode terminates
+```
+
+### Key Components
+
+**State $S(t)$**: `(391,)` observation = 64-bar history + 7 context scalars
+- Encodes all information needed to decide next action
+- Satisfies Markov property: future only depends on current state, not history
+
+**Action $a(t)$**: Discrete choice from {0=HOLD, 1=OPEN_LONG, 2=OPEN_SHORT, 3=CLOSE, 4=PROTECT, 5=MANAGE_TP}
+- Subject to **gating constraints**: cannot open positions outside tradable window
+
+**Reward $r(t)$**: 
+$$r(t) = \frac{\text{equity}(t) - \text{equity}(t-1)}{\text{equity}(t-1)} - 10^{-4} \times \mathbb{1}[\text{invalid action}]$$
+- Primary: fractional equity change (profit/loss)
+- Secondary: small penalty for attempting invalid actions
+
+**Episode Termination**:
+- End-of-day (1,440 M1 bars processed)
+- OR equity reaches ±2% threshold (early stop)
+
+### Policy & Learning
+
+Agent learns a **policy** $\pi(a|s)$ that maps states to action probabilities.
+
+Objective: Maximize expected cumulative return
+$$G_t = \sum_{k=0}^{T-1} \gamma^k r_{t+k} \quad (\gamma=1.0 \text{ for trading-bot})$$
+
+See [`docs/MDP_FORMALIZATION.md`](docs/MDP_FORMALIZATION.md) for complete mathematical specification.
+
+### Actor-Critic Learning
+
+Default implementation: **Actor-Critic A2C** 
+- **Actor** network: learns policy $\pi_\theta(a|s)$ (action selection)
+- **Critic** network: learns value $V_\phi(s)$ (state evaluation)
+- **Advantage**: $A(s,a) = r + \gamma V(s') - V(s)$ (credit assignment)
+
+This approach balances:
+- ✅ Sample efficiency (Temporal Difference learning)
+- ✅ Stability (value-based component)
+- ✅ Exploration (stochastic policy via softmax)
+
+---
+
 ## Actions
 
 | Index | Name         | Description                                    |
-|-------|--------------|-----------------------------------------------|
+|-------|--------------|----------------------------------------------- |
 | 0     | `HOLD`       | Do nothing                                     |
 | 1     | `OPEN_LONG`  | Open a long position                           |
 | 2     | `OPEN_SHORT` | Open a short position                          |
