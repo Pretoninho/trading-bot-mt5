@@ -1,6 +1,8 @@
 
+# MarkdownLint configuration file
 extends: default
 MD013:
   line_length: 120
   code_blocks: false
   code_line_length: 200
+MD041: false

@@ -1,7 +1,9 @@
 {
-  "markdownlint.ignore": [
-    ".markdownlintrc",
-    ".markdownlintrc.json",
-    ".markdownlintignore"
-  ]
+  "files.associations": {
+    ".markdownlintrc": "yaml",
+    ".markdownlintrc.json": "json"
+  },
+  "[yaml]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml"
+  }
 }
