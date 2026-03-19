@@ -167,7 +167,7 @@ class PPOAgent:
         # Store for later importance sampling computation
         self._current_old_log_prob = log_prob
         
-        return action, log_prob, value
+        return int(action), float(log_prob), float(value)
     
     def estimate_value(self, observation: np.ndarray) -> float:
         """

@@ -7,7 +7,7 @@
 La nouvelle implémentation PyTorch remplace le calcul manuel des gradients par:
 
 | Aspect | NumPy (Research) | PyTorch (Production) |
-|--------|------------------|----------------------|
+| --- | --- | --- |
 | **Gradients** | Manuels (placeholders) | Automatic differentiation |
 | **GPU** | Non supporté | ✓ Full GPU acceleration |
 | **Optimiseur** | Adam simplifié | Adam complet + scheduling |
@@ -17,7 +17,7 @@ La nouvelle implémentation PyTorch remplace le calcul manuel des gradients par:
 
 ### Architecture Fichiers Production
 
-```
+```text
 trading_env/agents/
 ├── networks.py                  ← PyTorch neural networks
 │   ├── ActorCriticNetwork      (politique + valeur)
@@ -104,7 +104,7 @@ tensorboard --logdir logs/ppo_training
 ### Comparaison Vitesse (100K étapes)
 
 | Configuration | Temps | GPU Utilization |
-|---------------|-------|-----------------|
+| --- | --- | --- |
 | NumPy CPU | 2 min | N/A |
 | PyTorch CPU | 40 sec | N/A |
 | PyTorch GPU (RTX 3080) | 3 sec | 85% |
@@ -113,7 +113,7 @@ tensorboard --logdir logs/ppo_training
 ### Comparaison Mémoire
 
 | Config | CPU | GPU |
-|--------|-----|-----|
+| --- | --- | --- |
 | Observation storage | 140 MB/1000 episodes | 140 MB |
 | Network weights | 20 MB | 20 MB GPU |
 | Gradients + optimizer | 100 MB | 200 MB GPU |
@@ -124,6 +124,7 @@ tensorboard --logdir logs/ppo_training
 ## ✅ Checklist Production
 
 ### Code Quality
+
 - [x] Automatic differentiation (PyTorch autograd)
 - [x] Type hints complets (Python 3.12)
 - [x] Docstrings avec formules mathématiques
@@ -131,6 +132,7 @@ tensorboard --logdir logs/ppo_training
 - [x] Gradient clipping (max_grad_norm=0.5)
 
 ### Performance
+
 - [x] Batch processing GPU-accelerated
 - [x] Zero-copy transitions to GPU
 - [x] Replay buffer with efficient indexing
@@ -138,6 +140,7 @@ tensorboard --logdir logs/ppo_training
 - [x] Adam optimizer with lr scheduling ready
 
 ### Monitoring & Logging
+
 - [x] Tensorboard integration
 - [x] Episode/training metrics
 - [x] Gradient statistics
@@ -145,6 +148,7 @@ tensorboard --logdir logs/ppo_training
 - [x] Checkpoint saving/loading
 
 ### Stability
+
 - [x] Advantage normalization
 - [x] Entropy regularization
 - [x] PPO-clip prevents divergence
@@ -152,6 +156,7 @@ tensorboard --logdir logs/ppo_training
 - [x] Orthogonal weight initialization
 
 ### Documentation
+
 - [x] Architecture docstrings
 - [x] Usage examples
 - [x] Device fallback explanation
@@ -194,7 +199,7 @@ PPOAgentPyTorch(
 ### Ressources Requises
 
 | Ressource | Minimal | Recommandé | Idéal |
-|-----------|---------|-----------|-------|
+| --- | --- | --- | --- |
 | **CPU** | 4 cores | 8 cores | 16+ cores |
 | **GPU** | RTX 3060 | RTX 3080 | A100 |
 | **RAM** | 8 GB | 16 GB | 32 GB |
@@ -207,7 +212,7 @@ PPOAgentPyTorch(
 
 ### Tensorboard Metrics
 
-```
+```text
 # Entraînement
 training/actor_loss        → Perte politique (doit décroître)
 training/critic_loss       → MSE valeur (doit décroître)
@@ -226,14 +231,17 @@ networks/ratio_mean       → Importance ratio moyen (idéal: ~1.0)
 ### Diagnostic Instabilité
 
 **Problème**: Valeur loss très élevée
+
 - **Cause**: Value network mal initialisée
 - **Solution**: `orthogonal_(weight, gain=2.0)`
 
 **Problème**: Clipped ratio > 50%
+
 - **Cause**: Learning rate trop élevé
 - **Solution**: Réduire `learning_rate` à 1e-4
 
 **Problème**: Entropy → 0 (policy collapse)
+
 - **Cause**: Coefficient entropie trop faible
 - **Solution**: Augmenter `entropy_coef` à 0.05
 
@@ -339,18 +347,21 @@ if episode_return < -0.10:  # Perte > 10%
 ## ✈️ Escalade Production
 
 ### Phase 1: Paper Trading (2 semaines)
+
 - Toutes positions hypothétiques
 - Monitoring complet actif
 - Drift detection OFF
 - Budget: Small
 
 ### Phase 2: Live Micro (1 mois)
+
 - Positions < 1% equity
 - Halt automatique si loss > 2%  
 - Monitoring étroit
 - Budget: Micro-lot
 
 ### Phase 3: Live Standard (Quand prêt)
+
 - Positions standard (2%)
 - Daily P&L cap: ±5%
 - Retraining weekly
@@ -379,15 +390,18 @@ if episode_return < -0.10:  # Perte > 10%
 ## 📚 References
 
 ### PyTorch Best Practices
-- https://pytorch.org/tutorials/recipes/recipes/
-- https://pytorch.org/blog/understanding-gpt-tokenizers/
+
+- [Tutorials](https://pytorch.org/tutorials/recipes/recipes/)
+- [Understanding Tokenizers](https://pytorch.org/blog/understanding-gpt-tokenizers/)
 - Enforcer: PyTorch Production Patterns (2023)
 
 ### PPO Papers
+
 - Schulman et al. "Proximal Policy Optimization Algorithms" (2017)
-- https://arxiv.org/abs/1707.06347
+- [Proximal Policy Optimization Algorithms](https://arxiv.org/abs/1707.06347)
 
 ### RL Trading
+
 - Hendricks & Wilcox "A Reinforcement Learning Framework for FX Trading" (2020)
 
 ---
@@ -395,6 +409,7 @@ if episode_return < -0.10:  # Perte > 10%
 ## 🎯 Success Metrics
 
 Production deployment réussi si:
+
 - [x] Agent initialise < 5 sec
 - [x] Inference ~5ms/action
 - [x] Update cycle < 10 min (après 1440 étapes)

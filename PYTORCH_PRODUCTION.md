@@ -15,7 +15,7 @@
 ## 📊 Comparaison Avant/Après
 
 | Critère | Avant (NumPy) | Après (PyTorch) | Gain |
-|---------|--------------|-----------------|------|
+| --- | --- | --- | --- |
 | **Gradients** | Manuels (❌) | Auto-diff (✓) | Correctness garantie |
 | **GPU** | Non (❌) | Native (✓) | 1000× bandwidth |
 | **Batch Processing** | Boucles (❌) | Vectorisé (✓) | 40× faster |
@@ -86,7 +86,7 @@ agent.save_checkpoint("./model.pt")
 
 ## 📂 Structure Fichiers
 
-```
+```text
 trading_env/
 ├── agents/
 │   ├── __init__.py              ← Exports 10 classes
@@ -134,6 +134,7 @@ ActorCriticNetwork(
 ```
 
 **Caractéristiques**:
+
 - Poids orthogonaux (stabilité)
 - Shared backbone (efficacité)
 - Forward() retourne logits + values
@@ -147,6 +148,7 @@ batch = buffer.get_batch(batch_size, device)  # → PyTorch tensors
 ```
 
 **Avantages**:
+
 - Stockage efficace des trajectoires
 - GAE in-place
 - GPU transfer transparent
@@ -154,12 +156,14 @@ batch = buffer.get_batch(batch_size, device)  # → PyTorch tensors
 ### 3. PPOAgentPyTorch
 
 **Methods principales**:
+
 - `select_action(obs)` → action, log_prob, value
 - `store_transition()` → buffer append
 - `update()` → PPO+GAE optimization
 - `save_checkpoint()` / `load_checkpoint()`
 
 **Logging**:
+
 - Tensorboard `SummaryWriter`
 - Episode metrics
 - Training metrics
@@ -171,7 +175,7 @@ batch = buffer.get_batch(batch_size, device)  # → PyTorch tensors
 
 Test exécuté (10 épisodes × 100 steps):
 
-```
+```text
 Device: CPU (single-threaded)
 Episodes:  10
 Steps:     1000 total
@@ -240,7 +244,7 @@ print("✓ Checkpoint save/load works")
 
 ### Exemple Output
 
-```
+```text
 [Training]
 episode/return: mean=0.0025, std=0.0089
 episode/length: mean=100.0
@@ -258,18 +262,21 @@ GPU: Not available (CPU used)
 ## 🎯 Next Steps Recommandés
 
 ### Court Term (Cette semaine)
+
 - [x] P Asser à PyTorch ✓
 - [ ] Connecter à environnement réel EURUSD
 - [ ] Entraîner 1000 épisodes
 - [ ] Valider checkpoints
 
 ### Moyen Term (Mois 1)
+
 - [ ] Paper trading 2 semaines
 - [ ] Monitoring de stabilité
 - [ ] Hyperparameter tuning (εPPO, λGAE)
 - [ ] Pipeline ML (train script v2)
 
 ### Long Term (Mois 3+)
+
 - [ ] Live micro-lot (1% equity)
 - [ ] Modulariser reward function
 - [ ] Retraining pipeline hebdomadaire
@@ -282,12 +289,14 @@ GPU: Not available (CPU used)
 ### Core Files
 
 #### networks.py (201 lines)
+
 - `ActorCriticNetwork`: Shared architecture
 - `PPONetworks`: Wrapper avec optimizer
 - Weight initialization
 - Device management
 
 #### ppo_pytorch.py (450+ lines)
+
 - `ReplayBuffer`: Circular trajectory buffer
 - `PPOAgentPyTorch`: Complete agent
 - GAE computation
@@ -297,12 +306,14 @@ GPU: Not available (CPU used)
 ### Support Files
 
 #### examples/train_ppo_pytorch.py (200 lines)
+
 - Complete training loop example
 - Episode simulation
 - Checkpoint save/load
 - Summary printing
 
 #### docs/PRODUCTION_DEPLOYMENT.md (350 lines)
+
 - Deployment guide
 - Configuration recommendations
 - Performance benchmarks
@@ -312,31 +323,36 @@ GPU: Not available (CPU used)
 
 ## 🎖️ Quality Checklist
 
-**Code Quality**
+### Code Quality
+
 - [x] Type hints (Python 3.12+)
 - [x] Docstrings avec formules
 - [x] Error handling
 - [x] PEP 8 compliant
 
-**Performance**
+### Performance
+
 - [x] Batch processing
 - [x] GPU acceleration ready
 - [x] Memory efficient
 - [x] Checkpoints optimized
 
-**Stability**
+### Stability
+
 - [x] Gradient clipping
 - [x] Advantage normalization
 - [x] PPO-clip prevents divergence
 - [x] Entropy regularization
 
-**Testability**
+### Testability
+
 - [x] Example script runnable
 - [x] Save/load confirmed
 - [x] Training loop validated
 - [x] Metrics logged
 
-**Documentation**
+### Documentation
+
 - [x] This guide
 - [x] Deployment instructions
 - [x] API docstrings
