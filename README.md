@@ -20,7 +20,8 @@ Key features:
 * **Full position management** — ATR-based SL, partial TP closes, break-even
   protection, and trailing stop via discrete actions.
 * **Gymnasium `Env`** — `reset()` / `step()` API with a 64-bar observation
-  window and early-stop on ±2 % daily equity change.
+  window and early-stop on ±2 % daily equity change.  Each episode spans
+  **08:00–22:00 UTC** of a single calendar day.
 
 ---
 
