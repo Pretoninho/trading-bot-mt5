@@ -1,0 +1,5 @@
+# Configuration files - not markdown documents
+.markdownlintrc
+.markdownlintrc.json
+.git/
+node_modules/
