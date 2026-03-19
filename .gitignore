@@ -37,3 +37,16 @@ unsafe_weeks.csv
 week_meta.csv
 fxstreet_calendar.csv
 *.parquet
+
+# Tensorboard logs
+logs/
+runs/
+
+# Pytest cache
+.pytest_cache/
+*.pyc
+
+# Checkpoints
+checkpoints/
+*.pt
+*.pth
