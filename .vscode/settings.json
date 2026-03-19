@@ -2,8 +2,5 @@
   "files.associations": {
     ".markdownlintrc": "yaml",
     ".markdownlintrc.json": "json"
-  },
-  "[yaml]": {
-    "editor.defaultFormatter": "redhat.vscode-yaml"
   }
 }
