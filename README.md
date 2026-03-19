@@ -155,14 +155,14 @@ print("Final equity:", info["equity"])
 
 ## Actions
 
-| Index | Name        | Description                                    |
-|-------|-------------|------------------------------------------------|
-| 0     | `HOLD`      | Do nothing                                     |
-| 1     | `OPEN_LONG` | Open a long position                           |
-| 2     | `OPEN_SHORT`| Open a short position                          |
-| 3     | `CLOSE`     | Close the current position at market           |
-| 4     | `PROTECT`   | Move SL to break-even; trail if TP2 taken      |
-| 5     | `MANAGE_TP` | Close 25 % lots at TP1 or TP2 if price reached|
+| Index | Name         | Description                                    |
+|-------|--------------|-----------------------------------------------|
+| 0     | `HOLD`       | Do nothing                                     |
+| 1     | `OPEN_LONG`  | Open a long position                           |
+| 2     | `OPEN_SHORT` | Open a short position                          |
+| 3     | `CLOSE`      | Close the current position at market           |
+| 4     | `PROTECT`    | Move SL to break-even; trail if TP2 taken      |
+| 5     | `MANAGE_TP`  | Close 25 % lots at TP1 or TP2 if price reached|
 
 ---
 
