@@ -26,7 +26,7 @@ Key features:
 
 ## Package structure
 
-```
+```tree
 trading_env/
 ├── data/
 │   ├── market_loader.py   # MT5 M1 CSV → enriched DataFrame
@@ -63,7 +63,7 @@ pip install -r requirements.txt
 
 The exported file has the format:
 
-```
+```text
 <DATE> <TIME> <OPEN> <HIGH> <LOW> <CLOSE> <TICKVOL> <VOL> <SPREAD>
 2025.01.06 00:00:00 1.02345 1.02390 1.02310 1.02360 312 0 8
 ```
@@ -97,6 +97,7 @@ print(unsafe_weeks.head())
 ```
 
 This produces:
+
 * `news_events.csv` — filtered CPI/PPI/NFP/FOMC events (columns:
   `time_utc, currency, impact, title`).
 * `unsafe_weeks.csv` — ISO weeks that contain a high-impact event on
@@ -154,14 +155,14 @@ print("Final equity:", info["equity"])
 
 ## Actions
 
-| Index | Name        | Description                                      |
-|-------|-------------|--------------------------------------------------|
-| 0     | `HOLD`      | Do nothing                                       |
-| 1     | `OPEN_LONG` | Open a long position                             |
-| 2     | `OPEN_SHORT`| Open a short position                            |
-| 3     | `CLOSE`     | Close the current position at market             |
-| 4     | `PROTECT`   | Move SL to break-even; trail if TP2 taken        |
-| 5     | `MANAGE_TP` | Close 25 % lots at TP1 or TP2 if price reached  |
+| Index | Name         | Description                                     |
+|-------|----------------------|-------------------------------------------------|
+| 0     | `HOLD`       | Do nothing                                      |
+| 1     | `OPEN_LONG`  | Open a long position                            |
+| 2     | `OPEN_SHORT` | Open a short position                           |
+| 3     | `CLOSE`      | Close the current position at market            |
+| 4     | `PROTECT`    | Move SL to break-even; trail if TP2 taken       |
+| 5     | `MANAGE_TP`  | Close 25 % lots at TP1 or TP2 if price reached |
 
 ---
 
@@ -172,13 +173,14 @@ Shape: `(391,)` = 64 bars × 6 features + 7 scalars.
 **Bar features** (normalized, per bar): `open_ret, high_ret, low_ret, close_ret, spread_price, atr14`
 
 **Scalar features** (7 total):
-- `is_tradable_now` — Boolean flag (1.0 or 0.0) if agent can trade now
-- `is_safe_week` — Boolean flag if current ISO week is free of high-impact news
-- `has_breakout` — Boolean flag if this week's Tuesday closed outside Monday's range
-- `tp_state_norm` — Current TP level (0.0 = no TP, 0.5 = TP1 taken, 1.0 = TP2 taken)
-- `break_even_set` — Boolean flag if stop-loss has been moved to break-even
-- `runner_trailing_active` — Boolean flag if trailing stop is active
-- `r_multiple_unrealized` — Current unrealized PnL in risk multiples (e.g., 0.5R, 1.5R)
+
+* `is_tradable_now` — Boolean flag (1.0 or 0.0) if agent can trade now
+* `is_safe_week` — Boolean flag if current ISO week is free of high-impact news
+* `has_breakout` — Boolean flag if this week's Tuesday closed outside Monday's range
+* `tp_state_norm` — Current TP level (0.0 = no TP, 0.5 = TP1 taken, 1.0 = TP2 taken)
+* `break_even_set` — Boolean flag if stop-loss has been moved to break-even
+* `runner_trailing_active` — Boolean flag if trailing stop is active
+* `r_multiple_unrealized` — Current unrealized PnL in risk multiples (e.g., 0.5R, 1.5R)
 
 ---
 
