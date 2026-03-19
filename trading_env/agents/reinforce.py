@@ -98,9 +98,9 @@ class SimpleReinforce:
         probs = np.exp(logits_shifted) / np.sum(np.exp(logits_shifted))
         
         if deterministic:
-            action = np.argmax(probs)
+            action = int(np.argmax(probs))
         else:
-            action = np.random.choice(self.action_dim, p=probs)
+            action = int(np.random.choice(self.action_dim, p=probs))
         
         log_prob = np.log(probs[action] + 1e-10)
         return action, log_prob
@@ -242,9 +242,9 @@ class ReinforceWithBaseline:
         probs = np.exp(logits_shifted) / np.sum(np.exp(logits_shifted))
         
         if deterministic:
-            action = np.argmax(probs)
+            action = int(np.argmax(probs))
         else:
-            action = np.random.choice(self.action_dim, p=probs)
+            action = int(np.random.choice(self.action_dim, p=probs))
         
         log_prob = np.log(probs[action] + 1e-10)
         

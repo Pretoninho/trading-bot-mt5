@@ -50,3 +50,8 @@ runs/
 checkpoints/
 *.pt
 *.pth
+
+# Streamlit & Configuration
+bot_config.json
+.streamlit/
+.streamlit_cache/
