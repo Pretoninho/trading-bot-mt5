@@ -33,7 +33,7 @@ where each bar $b_i = [\text{open\_ret}_i, \text{high\_ret}_i, \text{low\_ret}_i
 **Feature definitions:**
 
 | Feature | Type | Range | Definition |
-|---------|------|-------|-----------|
+|---------|------|-------|------------|
 | `open_ret` | Float | [-1, 1] | $(O_i - C_{i-1}) / C_{i-1}$ |
 | `high_ret` | Float | [-1, 1] | $(H_i - C_{i-1}) / C_{i-1}$ |
 | `low_ret` | Float | [-1, 1] | $(L_i - C_{i-1}) / C_{i-1}$ |
@@ -132,7 +132,7 @@ If stopped out, close entire position at SL price; skip agent action for this ba
 
 Execute the agent's action (after constraint enforcement):
 
-- **OPEN_LONG:** 
+- **OPEN_LONG:**
   - Entry price: $P_{\text{entry}} = C_t + \frac{\text{spread}_t}{2}$ (ask price)
   - SL: $P_{\text{SL}} = P_{\text{entry}} - 2 \times \text{ATR}_{14,(t-1)}$
   - TP1: $P_{\text{TP1}} = P_{\text{entry}} + R$ where $R = 2 \times \text{ATR}_{14,(t-1)}$
@@ -142,7 +142,7 @@ Execute the agent's action (after constraint enforcement):
 
 - **OPEN_SHORT:** Symmetric to LONG (entry at bid, SL above)
 
-- **CLOSE:** 
+- **CLOSE:**
   - Exit price: $(C_t - \frac{\text{spread}_t}{2})$ for long, $(C_t + \frac{\text{spread}_t}{2})$ for short
   - Compute realized PnL: $\Delta P = (P_{\text{exit}} - P_{\text{entry}}) \times \text{lots}$
   - Update equity: $\text{equity} \gets \text{equity} + \Delta P$
@@ -247,7 +247,7 @@ $$\text{terminated} = \begin{cases}
 \text{False} & \text{otherwise}
 \end{cases}$$
 
-**Rationale:** 
+**Rationale:**
 - Agents that achieve 2% daily gains/losses are considered "converged" for the day
 - Prevents excessively long/short episodes
 - Models realistic risk management stop-outs
@@ -410,4 +410,3 @@ observation, reward, terminated, truncated, info = env.step(action)
 | ATR | Average True Range (volatility) |
 | $R$ | Risk multiple (SL distance in units) |
 | PnL | Profit and Loss |
-
