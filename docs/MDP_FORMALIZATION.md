@@ -1,8 +1,12 @@
-# Markov Decision Process Formalization
+# Markov Decision Process Formalization (MDP)
+
+<!-- markdownlint-disable MD013 -->
 
 ## Overview
 
-The **trading-bot-mt5** environment implements a **finite-horizon Markov Decision Process (MDP)** for EURUSD M1 (1-minute) trading simulation. This document provides the complete mathematical formulation.
+The **trading-bot-mt5** environment implements a finite-horizon MDP for EURUSD M1
+(1-minute) trading simulation. This document provides the complete mathematical
+formulation.
 
 ---
 
@@ -19,8 +23,11 @@ Each state $s_t \in \mathcal{S}$ at time step $t$ consists of two components:
 $$s_t = (h_t, c_t)$$
 
 where:
-- **$h_t \in \mathbb{R}^{384}$** is the **observation history** — a window of normalized OHLC data
-- **$c_t \in \mathbb{R}^{7}$** is the **context/scalar features** — position and market state information
+
+- **$h_t \in \mathbb{R}^{384}$** is the **observation history** — raw normalized
+  OHLC data
+- **$c_t \in \mathbb{R}^{7}$** is the **context/scalar features** — position state
+  and market state information
 
 ### 1.2 History Component $h_t$
 
@@ -28,12 +35,13 @@ The history window contains **64 bars** of price data with **6 features per bar*
 
 $$h_t = [b_1, b_2, \ldots, b_{64}] \in \mathbb{R}^{64 \times 6}$$
 
-where each bar $b_i = [\text{open\_ret}_i, \text{high\_ret}_i, \text{low\_ret}_i, \text{close\_ret}_i, \text{spread}_i, \text{atr14\_norm}_i]$.
+where each bar $b_i = [\text{open\\_ret}_i, \text{high\\_ret}_i,
+\text{low\\_ret}_i, \text{close\\_ret}_i, \text{spread}_i, \text{atr14\\_norm}_i]$.
 
 **Feature definitions:**
 
 | Feature | Type | Range | Definition |
-|---------|------|-------|------------|
+ | --------- | ------ | ------- | ------------ |
 | `open_ret` | Float | [-1, 1] | $(O_i - C_{i-1}) / C_{i-1}$ |
 | `high_ret` | Float | [-1, 1] | $(H_i - C_{i-1}) / C_{i-1}$ |
 | `low_ret` | Float | [-1, 1] | $(L_i - C_{i-1}) / C_{i-1}$ |
@@ -41,7 +49,7 @@ where each bar $b_i = [\text{open\_ret}_i, \text{high\_ret}_i, \text{low\_ret}_i
 | `spread` | Float | [0, ∞) | $(A_i - B_i)$ in price units |
 | `atr14_norm` | Float | [0, 1] | $\text{ATR}_{14,i} / \text{ATR}_{14,\max}$ |
 
-where $O_i, H_i, L_i, C_i$ are open, high, low, close prices; $A_i, B_i$ are ask/bid prices.
+where $O_i, H_i, L_i, C_i$ = open, high, low, close; $A_i, B_i$ = ask, bid.
 
 ### 1.3 Context Component $c_t$
 
@@ -50,14 +58,14 @@ The context vector contains 7 scalar features describing the trading environment
 $$c_t = [c_1, c_2, c_3, c_4, c_5, c_6, c_7]^T$$
 
 | Index | Feature | Type | Range | Meaning |
-|-------|---------|------|-------|---------|
-| 1 | `is_tradable_now` | Binary | {0, 1} | Agent can trade (Wed/Thu, 08:00-22:00 UTC) |
-| 2 | `is_safe_week` | Binary | {0, 1} | Current ISO week free of high-impact news |
-| 3 | `has_breakout` | Binary | {0, 1} | This week: Tue close broke Mon range |
-| 4 | `tp_state_norm` | Float | {0, 0.5, 1} | TP state (0=none, 0.5=TP1 taken, 1=TP2 taken) |
+ | ------- | --------- | ------ | ------- | --------- |
+| 1 | `is_tradable_now` | Binary | {0, 1} | Trading allowed (Wed-Thu, 08:00-22:00) |
+| 2 | `is_safe_week` | Binary | {0, 1} | Week free of significant news events |
+| 3 | `has_breakout` | Binary | {0, 1} | Tue close broke Mon range this week |
+| 4 | `tp_state_norm` | Float | {0, 0.5, 1} | TP taken state (0/0.5/1 for none/TP1/TP2) |
 | 5 | `break_even_set` | Binary | {0, 1} | SL moved to break-even |
 | 6 | `runner_trailing_active` | Binary | {0, 1} | Trailing stop is active |
-| 7 | `r_multiple_unrealized` | Float | ℝ | Unrealized PnL in risk multiples (e.g., 0.5R, 1.5R) |
+| 7 | `r_multiple_unrealized` | Float | ℝ | Unrealized PnL (e.g., 0.5R, 1.5R, -2R) |
 
 ### 1.4 State Dynamics
 
@@ -78,13 +86,13 @@ The action space is **discrete** and finite:
 $$\mathcal{A} = \{0, 1, 2, 3, 4, 5\}$$
 
 | Action | Name | Precondition | Effect |
-|--------|------|--------------|--------|
+ | -------- | ------ | -------------- | -------- |
 | 0 | `HOLD` | Always allowed | Do nothing; move to next bar |
-| 1 | `OPEN_LONG` | No position open | Enter long at ask; compute SL (entry - 2×ATR), TP1 (entry + R), TP2 (entry + 2R) |
-| 2 | `OPEN_SHORT` | No position open | Enter short at bid; compute SL (entry + 2×ATR), TP targets |
-| 3 | `CLOSE` | Position open | Close position at market (bid for long, ask for short) |
-| 4 | `PROTECT` | Position open | Move SL to break-even; enable trailing if TP state ≥ 1 |
-| 5 | `MANAGE_TP` | Position open | Check bar's High/Low; close 25% of lots at TP1 or TP2 if reached |
+| 1 | `OPEN_LONG` | No position open | SL = 2×ATR below; TP at R, 2R |
+| 2 | `OPEN_SHORT` | No position open | SL = 2×ATR above; TP at R, 2R |
+| 3 | `CLOSE` | Position open | Close position at market price |
+| 4 | `PROTECT` | Position open | Move SL to break-even; trailing if TP≥1 |
+| 5 | `MANAGE_TP` | Position open | Take profit when High/Low hit TP levels |
 
 ### 2.2 Action Constraints (Gating)
 
@@ -137,23 +145,23 @@ Execute the agent's action (after constraint enforcement):
   - SL: $P_{\text{SL}} = P_{\text{entry}} - 2 \times \text{ATR}_{14,(t-1)}$
   - TP1: $P_{\text{TP1}} = P_{\text{entry}} + R$ where $R = 2 \times \text{ATR}_{14,(t-1)}$
   - TP2: $P_{\text{TP2}} = P_{\text{entry}} + 2R$
-  - Lots: $\text{lots} = \frac{0.01 \times \text{equity}}{(P_{\text{entry}} - P_{\text{SL}}) \times 10}$ (1% risk sizing)
+  - Lots: $\text{lots} = \frac{0.01 \ \text{equity}}{(P_{\text{entry}} - P_{\text{SL}}) \ \times \ 10}$
   - $\text{tp\_state} \gets 0$, $\text{break\_even\_set} \gets \text{False}$
 
 - **OPEN_SHORT:** Symmetric to LONG (entry at bid, SL above)
 
 - **CLOSE:**
-  - Exit price: $(C_t - \frac{\text{spread}_t}{2})$ for long, $(C_t + \frac{\text{spread}_t}{2})$ for short
+  - Exit price: $(C_t \mp \frac{\text{spread}_t}{2})$ (bid for long, ask for short)
   - Compute realized PnL: $\Delta P = (P_{\text{exit}} - P_{\text{entry}}) \times \text{lots}$
   - Update equity: $\text{equity} \gets \text{equity} + \Delta P$
   - Reset position state: $\text{pos} \gets 0$
 
 - **MANAGE_TP:**
-  - Check if bar High reaches TP1: if so and $\text{tp\_state} = 0$, close 25% at TP1, $\text{tp\_state} \gets 1$
-  - Check if bar High reaches TP2: if so and $\text{tp\_state} = 1$, close 25% at TP2, $\text{tp\_state} \gets 2$
+  - Check High reaches TP1: if yes and $\text{tp\\_state} = 0$, close 25%, $\text{tp\\_state} \gets 1$
+  - Check High reaches TP2: if yes and $\text{tp\\_state} = 1$, close 25%, $\text{tp\\_state} \gets 2$
 
 - **PROTECT:**
-  - If $\text{tp\_state} \geq 1$ or unrealized move $\geq 1R$: move SL to entry ± `be_buffer`; set $\text{break\_even\_set} \gets \text{True}$
+  - If $\text{tp\\_state} \geq 1$ or unrealized move $\geq 1R$: move SL to entry +/- buffer
   - If $\text{tp\_state} = 2$ (both TPs taken): enable trailing stop
     - For long: $\text{SL} \gets \max(\text{SL}, C_t - 2 \times \text{ATR}_{14,t})$
     - For short: $\text{SL} \gets \min(\text{SL}, C_t + 2 \times \text{ATR}_{14,t})$
