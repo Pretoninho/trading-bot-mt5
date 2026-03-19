@@ -76,7 +76,7 @@ The exported file has the format:
 2. Set the timezone to **UTC / GMT+0** in the calendar settings.
 3. Filter events: **Impact = High**, **Currencies = USD, EUR**.
 4. Export by quarter (**max ~3 months per download**) — you will receive files named
-   e.g. `q1_2024.csv`, `q2_2024.csv`, `q3_2024.csv`, `q4_2024.csv` (exact naming varies).
+   e.g. `fx_q1.csv`, `fx_q2.csv`, `fx_q3.csv`, `fx_q4.csv` (exact naming varies).
 
 FXStreet CSV columns: `Id, Start, Name, Impact, Currency`
 (`Start` is `MM/DD/YYYY HH:MM:SS` in UTC).
@@ -185,7 +185,6 @@ Shape: `(391,)` = 64 bars × 6 features + 7 scalars.
 ## Running tests
 
 ```bash
-pip install pytest
 pytest tests/test_smoke.py -v
 ```
 
@@ -199,4 +198,5 @@ See `requirements.txt`:
 gymnasium>=0.29.0
 numpy>=1.24.0
 pandas>=2.0.0
+pytest>=7.0.0
 ```
