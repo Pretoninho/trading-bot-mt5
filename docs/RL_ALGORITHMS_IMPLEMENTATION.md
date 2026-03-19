@@ -1,25 +1,25 @@
-# Implementações RL: REINFORCE → A2C → PPO → GAE
+# Implémentations RL: REINFORCE → A2C → PPO → GAE
 
-## Visão Geral
+## Aperçu General
 
-Este documento descreve as 4 implementações de algoritmos de Gradiente de Política para o trading bot EURUSD:
+Ce document décrit les 4 implémentations d'algorithmes de Gradiente Politique pour le trading bot EURUSD:
 
-| Algoritmo | Arquivo | Variância | Bias | Estabilidade | Status |
-|-----------|---------|-----------|------|--------------|--------|
-| **REINFORCE Puro** | `reinforce.py::SimpleReinforce` | ⛔ Muito Alta | Nenhum | ❌ Baixa | Baseline |
-| **REINFORCE+Baseline** | `reinforce.py::ReinforceWithBaseline` | ⚠️ Alta | Baixo | ⚠️ Média | Baseline |
-| **A2C (TD(1))** | `actor_critic.py` | 🟡 Média | Médio | ✓ Boa | Atual |
-| **PPO** | `ppo.py::PPOAgent` | 🟢 Baixa | Baixo | ✓✓ Muito Boa | Novo |
-| **PPO + GAE** | `gae.py::PPOAgentWithGAE` | 🟢🟢 Muito Baixa | Muito Baixo | ✓✓✓ Excelente | Recomendado |
+| Algorithme | Fichier | Variance | Biais | Stabilité | Statut |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **REINFORCE Pur** | `reinforce.py::SimpleReinforce` | ⛔ Très Haute | Aucun | ❌ Faible | Baseline |
+| **REINFORCE+Baseline** | `reinforce.py::ReinforceWithBaseline` | ⚠️ Haute | Faible | ⚠️ Moyen | Baseline |
+| **A2C (TD(1))** | `actor_critic.py` | 🟡 Moyen | Moyen | ✓ Bon | Actuel |
+| **PPO** | `ppo.py::PPOAgent` | 🟢 Faible | Faible | ✓✓ Très Bon | Nouveau |
+| **PPO + GAE** | `gae.py::PPOAgentWithGAE` | 🟢🟢 Très Faible | Très Faible | ✓✓✓ Excellent | Recommandé |
 
 ---
 
-## 1. Arquitetura de Rede Compartilhada
+## 1. Architecture de Réseau Partagée
 
-Todas as implementações usam arquitetura **actor-critic** com rede compartilhada:
+Toutes les implémentations utilisent l'architecture **actor-critic** avec réseau partagé:
 
-```
-Observação [391D]
+```text
+Observation [391D]
      ↓
 W_shared @ obs + b_shared
      ↓
@@ -36,203 +36,209 @@ Softmax → π(a|s)            V(s) ∈ ℝ
 Sample → a_t
 ```
 
-**Dimensões (EURUSD)**:
-- Entrada: 391D (histórico + contexto)
-- Escondida: 128D (padrão)
-- Ação: 6D (HOLD, LONG, SHORT, CLOSE, PROTECT, MANAGE_TP)
-- Valor: 1D (estimativa V(s))
+**Dimensions (EURUSD)**:
+
+- Entrée: 391D (historique + contexte)
+- Cachée: 128D (par défaut)
+- Action: 6D (HOLD, LONG, SHORT, CLOSE, PROTECT, MANAGE_TP)
+- Valeur: 1D (estimation V(s))
 
 ---
 
-## 2. REINFORCE: Demonstração de Problema de Variância
+## 2. REINFORCE: Démonstration du Problème de Variance
 
-### 2.1 SimpleReinforce (Caso Puro)
+### 2.1 SimpleReinforce (Cas Pur)
 
-**Arquivo**: `trading_env/agents/reinforce.py::SimpleReinforce`
+**Fichier**: `trading_env/agents/reinforce.py::SimpleReinforce`
 
-**Característica Chave**: Sem baseline - usa retorno Monte Carlo completo como peso de gradiente
+**Caractéristique Clé**: Sans baseline - utilise le retour Monte Carlo complet comme poids de gradient
 
 ```python
-# Atualização REINFORCE pura:
+# Mise à jour REINFORCE pure:
 for t in range(T):
-    G_t = sum(γ^k r_{t+k} for k in range(T-t))  # Retorno completo desde etapa t
-    policy_loss += -log_prob_t * G_t  # ❌ MUITO BARULHO (alta variância)
+    G_t = sum(γ^k r_{t+k} for k in range(T-t))  # Retour complet depuis étape t
+    policy_loss += -log_prob_t * G_t  # ❌ BEAUCOUP DE BRUIT (haute variance)
 ```
 
-**Problema Identificado**:
+**Problème Identifié**:
 
-Para horizonte $H = 1440$ (dia de trading) e recompensa com variância $\sigma_r^2$:
+Pour horizon $H = 1440$ (jour de trading) et récompense avec variance $\sigma_r^2$:
 
 $$\text{Var}(G_t) = \sum_{k=0}^{H} \gamma^{2k} \sigma_r^2 \approx \frac{\sigma_r^2}{1-\gamma^2}$$
 
-Com $\gamma = 0.99$ e $\sigma_r = 0.05$:
+Avec $\gamma = 0.99$ et $\sigma_r = 0.05$:
 $$\text{Var}(G_t) \approx \frac{0.0025}{1-0.9801} = \frac{0.0025}{0.0199} \approx 0.126$$
 
-**Resultado**: Gradientes muito ruidosos → atualizações erráticas
+**Résultat**: Gradients très bruyants → mises à jour erratiques
 
 ### 2.2 ReinforceWithBaseline
 
-**Arquivo**: `trading_env/agents/reinforce.py::ReinforceWithBaseline`
+**Fichier**: `trading_env/agents/reinforce.py::ReinforceWithBaseline`
 
-**Melhoria**: Subtrai baseline aprendido V(s) para centralizar gradientes
+**Amélioration**: Soustrait la baseline apprise V(s) pour centrer les gradients
 
 ```python
-# REINFORCE com baseline:
+# REINFORCE avec baseline:
 for t in range(T):
     G_t = sum(γ^k r_{t+k})
     V_est = estimate_value(s_t)
-    advantage = G_t - V_est  # ✓ Variância reduzida
+    advantage = G_t - V_est  # ✓ Variance réduite
     policy_loss += -log_prob_t * advantage
 ```
 
-**Redução de Variância**:
+**Réduction de Variance**:
 
 $$\text{Var}(A(s,a)) = \text{Var}(G_t - V(s)) = \text{Var}(G_t) - \text{Var}(V(s))$$
 
-Empiricamente: 50-90% redução de variância (dependendo de quão bem V(s) foi aprendida)
+Empiricalement: 50-90% réduction de variance (dépend de la qualité d'apprentissage de V(s))
 
-**Limitação**: Ainda **on-policy** - deve coletar novo episódio completo para atualizar
+**Limitation**: Toujours **on-policy** - doit collecter un nouvel épisode complet pour mettre à jour
 
 ---
 
-## 3. A2C: Aprendizagem TD com Atualização por Etapa
+## 3. A2C: Apprentissage TD avec Mise à Jour par Étape
 
-**Arquivo**: `trading_env/agents/actor_critic.py`
+**Fichier**: `trading_env/agents/actor_critic.py`
 
-**Avanço**: Bootstrap com V(s_{t+1}) em vez de aguardar fim do episódio
+**Avancée**: Bootstrap avec V(s_{t+1}) au lieu d'attendre la fin de l'épisode
 
 ```python
 # TD(1) Advantage:
-A_t = r_t + γ·V(s_{t+1}) - V(s_t)  # Atualiza a cada passo ✓
+A_t = r_t + γ·V(s_{t+1}) - V(s_t)  # Met à jour à chaque étape ✓
 
-# Atualização imediata de ator E crítico
+# Mise à jour immédiate d'acteur ET critique
 policy_loss = -log_prob_t * A_t
 value_loss = A_t²
 θ ← θ - α_π ∇policy_loss
 φ ← φ - α_V ∇value_loss
 ```
 
-**Benefício**:
-- 1440× mais atualizações por dia (uma por passo vs uma por episódio)
-- Convergência muito mais rápida
+**Avantage**:
 
-**Desvantagem**:
-- Bootstrap bias se V(s) for estimada incorretamente
-- Menos estável que REINFORCE se V inicializada mal
+- 1440× plus de mises à jour par jour (une par étape vs une par épisode)
+- Convergence beaucoup plus rapide
+
+**Désavantage**:
+
+- Bootstrap bias si V(s) est estimé incorrectement
+- Moins stable que REINFORCE si V mal initialisé
 
 ---
 
-## 4. PPO: Otimização com Região de Confiança
+## 4. PPO: Optimisation avec Région de Confiance
 
-**Arquivo**: `trading_env/agents/ppo.py::PPOAgent`
+**Fichier**: `trading_env/agents/ppo.py::PPOAgent`
 
-**Inovação**: Usa trajetórias antigas múltiplas épocas, com clipping para evitar divergência
+**Innovation**: Utilise les trajectoires anciennes sur plusieurs époques, avec clipping pour éviter la divergence
 
-### 4.1 Razão de Importância Sampling
+### 4.1 Ratio d'Importance Sampling
 
 $$r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\text{old}}(a_t|s_t)}$$
 
-Mede **quanto a nova política divergiu da antiga**:
-- $r_t = 1.0$: Mesma probabilidade
-- $r_t > 1.0$: Nova política mais provável
-- $r_t < 1.0$: Nova política menos provável
+Mesurez **à quel point la nouvelle politique a divergé de l'ancienne**:
 
-### 4.2 PPO-Clip Objective
+- $r_t = 1.0$: Même probabilité
+- $r_t > 1.0$: Nouvelle politique plus probable
+- $r_t < 1.0$: Nouvelle politique moins probable
+
+### 4.2 Objectif PPO-Clip
 
 ```python
-# Objetivo não clipped (problema: ratio pode explodir):
-loss = E[r_t(θ) * A_t]  # ❌ Pode divergir
+# Objectif non clippé (problème: ratio peut exploser):
+loss = E[r_t(θ) * A_t]  # ❌ Peut diverger
 
-# PPO-Clip (solução: clipping previne grandes desvios):
+# PPO-Clip (solution: clipping prévient grands écarts):
 loss = E[min(r_t(θ) * A_t, clip(r_t(θ), 1-ε, 1+ε) * A_t)]
-      ↑ usar valor MENOR entre dois termos
+      ↑ utiliser la valeur INFÉRIEURE entre deux termes
 ```
 
-**Intuição**:
-- Se ratio < 1-ε (política nova muito diferente): use clipping
-- Se ratio > 1+ε: use clipping
-- Se 1-ε < ratio < 1+ε: use ratio puro
+**Intuition**:
 
-**Resultado**: Atualização gradual → estabilidade!
+- Si ratio < 1-ε (politique nouvelle très différente): utilisez clipping
+- Si ratio > 1+ε: utilisez clipping
+- Si 1-ε < ratio < 1+ε: utilisez ratio pur
 
-### 4.3 Reutilização de Dados (off-policy)
+**Résultat**: Mise à jour progressive → stabilité!
+
+### 4.3 Réutilisation de Données (off-policy)
 
 ```python
-# Coleta trajetória com π_old
-# Depois usa múltiplas épocas com π_new (clipping evita divergência)
-for epoch in range(5):  # Tipicamente 3-10 épocas
+# Collecte trajectoire avec π_old
+# Puis utilise plusieurs époques avec π_new (clipping évite divergence)
+for epoch in range(5):  # Typiquement 3-10 époques
     for batch in data:
-        # Recomputa  novas Log-probs com π_new
+        # Recalcule nouveaux Log-probs avec π_new
         new_log_probs = π_new(a|s)
         ratio = exp(new_log_prob - old_log_prob)
         
-        # PPO-Clip loss
+        # Perte PPO-Clip
         clipped = clip(ratio, 1-ε, 1+ε)
         loss = min(ratio*A, clipped*A)
         
         update(loss)
 ```
 
-**Eficiência**: 1 episódio de dados → 5 atualizações (5× melhor sample efficiency)
+**Efficacité**: 1 épisode de données → 5 mises à jour (5× meilleure efficacité d'échantillon)
 
 ---
 
-## 5. GAE: Estimação Ótima de Vantagem
+## 5. GAE: Estimation Optimale d'Avantage
 
-**Arquivo**: `trading_env/agents/gae.py::GAEAdvantageEstimator`
+**Fichier**: `trading_env/agents/gae.py::GAEAdvantageEstimator`
 
-**Problema Resolvido**: Equilibra bias-variância entre TD (baixa var/alto bias) e MC (alta var/sem bias)
+**Problème Résolu**: Équilibre biais-variance entre TD (faible var/haut biais) et MC (haute var/pas biais)
 
-### 5.1 TD(λ) Returns
+### 5.1 Retours TD(λ)
 
-Define continuum de estimadores através de parâmetro λ ∈ [0,1]:
+Définit un continuum d'estimateurs via paramètre λ ∈ [0,1]:
 
 $$A_t^{\text{GAE}}(\gamma,\lambda) = (1-\lambda) \sum_{n=1}^{\infty} \lambda^{n-1} A_t^{(n)}$$
 
-onde $A_t^{(n)}$ é n-step advantage
+où $A_t^{(n)}$ est l'avantage n-étape
 
-### 5.2 Computação Prática (Backward Pass)
+### 5.2 Calcul Pratique (Backward Pass)
 
-Em vez de somar infinitos termos, usar recorrência:
+Au lieu de sommer des termes infinis, utiliser la récurrence:
 
 ```python
-# Erros TD (deltas):
+# Erreurs TD (deltas):
 δ_t = r_t + γ·V(s_{t+1}) - V(s_t)
 
-# Accumulate backward:
+# Accumuler vers l'arrière:
 A_{T-1} = δ_{T-1}
-A_t = δ_t + (γλ)·A_{t+1}  # Recorrência ✓
+A_t = δ_t + (γλ)·A_{t+1}  # Récurrence ✓
 ```
 
-Isso computa exatamente: $A_t^{\text{GAE}} = \sum_{l=0}^{\infty} (\gamma\lambda)^l \delta_{t+l}$
+Ceci calcule exactement: $A_t^{\text{GAE}} = \sum_{l=0}^{\infty} (\gamma\lambda)^l \delta_{t+l}$
 
-### 5.3 Casos Limites
+### 5.3 Cas Limites
 
-| λ | Comportamento | Variância | Bias |
-|---|---------------|-----------|------|
-| 0.0 | TD puro | Baixa | Alto |
-| 0.50 | Balanço | Médio | Médio |
-| 0.95 | **(Recomendado)** | Muito Baixa | Muito Baixo |
-| 1.00 | Monte Carlo | Muito Alta | Zero |
+| λ | Comportement | Variance | Biais |
+| :--- | :--- | :--- | :--- |
+| 0.0 | TD pur | Faible | Haut |
+| 0.50 | Équilibre | Moyen | Moyen |
+| 0.95 | **(Recommandé)** | Très Faible | Très Faible |
+| 1.00 | Monte Carlo | Très Haute | Zéro |
 
-**Para trading EURUSD**: λ = 0.95 é ótimo
-- Redução de variância ~8.6× vs MC
-- Bias aceitável para trading
+**Pour trading EURUSD**: λ = 0.95 est optimal
+
+- Réduction de variance ~8.6× vs MC
+- Biais acceptable pour le trading
 
 ---
 
-## 6. Comparação Experimental
+## 6. Comparaison Expérimentale
 
-### 6.1 Rodando Testes
+### 6.1 Exécution des Tests
 
 ```bash
 cd /workspaces/trading-bot-mt5
 python tests/test_rl_algorithms.py
 ```
 
-Saída esperada:
+Sortie attendue:
 
-```
+```text
 ================================================================================
 RL ALGORITHMS COMPARISON: REINFORCE vs PPO vs GAE
 ================================================================================
@@ -240,7 +246,7 @@ RL ALGORITHMS COMPARISON: REINFORCE vs PPO vs GAE
 [1] PURE REINFORCE (No Baseline)
 ────────────────────────────────────────────────────────────────────────────
   Mean Episode Return:          0.123
-  Std Return:                   0.456  ← Muito alto!
+  Std Return:                   0.456  ← Très haute!
   Gradient Variance:           23.450
   ⚠️  HIGH VARIANCE → UNSTABLE TRAINING
 
@@ -249,70 +255,70 @@ RL ALGORITHMS COMPARISON: REINFORCE vs PPO vs GAE
   Mean Episode Return:          0.125
   Std Return:                   0.189
   Advantage Variance:           8.210
-  Variance Reduction:           2.8×  ← Melhoria
+  Variance Reduction:           2.8×  ← Amélioration
 
 [3] 1-STEP TD vs MONTE CARLO
 ────────────────────────────────────────────────────────────────────────────
   TD(1) Variance:               1.234
   MC Variance:                  8.900
-  Variance Reduction:           7.2×  ← TD muito menos barulho
+  Variance Reduction:           7.2×  ← TD beaucoup moins bruit
 
 [4] GAE: BIAS-VARIANCE TRADE-OFF with λ
 ────────────────────────────────────────────────────────────────────────────
   λ=0.0  (TD):     Variance=1.234
   λ=0.5  (50/50):  Variance=2.156
-  λ=0.95 (OPTIMAL):Variance=3.890  ← Ótimo ponto doce
+  λ=0.95 (OPTIMAL):Variance=3.890  ← Point doux optimal
   λ=1.0  (MC):     Variance=8.900
   → Optimal λ ≈ 0.95 (trading domain)
 ```
 
-### 6.2 Tabela Comparativa
+### 6.2 Tableau Comparatif
 
-```
-Algorithm            Variance    Bias        Rating
+```text
+Algorithm            Variance    Biais       Note
 ────────────────────────────────────────────────────
-REINFORCE            VERY HIGH   None        ❌ Poor
-REINFORCE+Baseline   HIGH        Low         ⚠️  Fair
-A2C (TD)             MEDIUM      Medium      ✓ Good
-PPO                  LOW         Low         ✓✓ Great
-PPO+GAE(λ=0.95)      VERY LOW    Very Low    ✓✓✓ Best
+REINFORCE            TRÈS HAUTE  Aucun       ❌ Mauvais
+REINFORCE+Baseline   HAUTE       Faible      ⚠️  Moyen
+A2C (TD)             MOYEN       Moyen       ✓ Bon
+PPO                  FAIBLE      Faible      ✓✓ Très Bon
+PPO+GAE(λ=0.95)      TRÈS FAIBLE Très Faible ✓✓✓ Meilleur
 ```
 
 ---
 
-## 7. Estrutura de Arquivos
+## 7. Structure de Fichiers
 
-```
+```text
 trading_env/agents/
 ├── __init__.py                 # Imports
-├── actor_critic.py            # A2C (baseline atual)
-├── ppo.py                      # PPO com clipping
-├── reinforce.py               # REINFORCE puro + variante
+├── actor_critic.py            # A2C (baseline actuel)
+├── ppo.py                      # PPO avec clipping
+├── reinforce.py               # REINFORCE pur + variante
 └── gae.py                      # GAE + PPO+GAE
 
 tests/
-└── test_rl_algorithms.py       # Comparação experimental
+└── test_rl_algorithms.py       # Comparaison expérimentale
 
 docs/
-├── RL_MATHEMATICAL_DERIVATIONS.md  # Derivações completas
-├── TRAJECTORY_EXAMPLE.md           # Exemplo de dia
-└── MDP_CONCEPTS_GUIDE.md           # Conceitos MDP
+├── RL_MATHEMATICAL_DERIVATIONS.md  # Dérivations complètes
+├── TRAJECTORY_EXAMPLE.md           # Exemple de jour
+└── MDP_CONCEPTS_GUIDE.md           # Concepts MDP
 ```
 
 ---
 
-## 8. Recomendação Final para EURUSD
+## 8. Recommandation Finale pour EURUSD
 
-### ✓ Use: PPO + GAE
+### ✓ Utiliser: PPO + GAE
 
-**Por quê?**
+**Pourquoi?**
 
-1. **Estabilidade**: Clipping PPO + bootstrap GAE = convergência suave
-2. **Sample Efficiency**: 5 épocas × dados reutilizáveis = menos experiências necessárias
-3. **Longo Horizonte**: 1440 etapas/dia → GAE(λ=0.95) essencial
-4. **Comprovado**: Stabilized por Schulman et al. (2017), usado em todas as aplicações SOTA
+1. **Stabilité**: Clipping PPO + bootstrap GAE = convergence fluide
+2. **Efficacité d'Échantillon**: 5 époques × données réutilisables = moins d'expériences nécessaires
+3. **Horizon Long**: 1440 étapes/jour → GAE(λ=0.95) essentiel
+4. **Éprouvé**: Stabilisé par Schulman et al. (2017), utilisé dans toutes les applications SOTA
 
-### Configuração Recomendada
+### Configuration Recommandée
 
 ```python
 from trading_env.agents.gae import PPOAgentWithGAE
@@ -323,24 +329,24 @@ agent = PPOAgentWithGAE(
     hidden_dim=128,
     learning_rate_actor=1e-4,
     learning_rate_critic=5e-4,
-    gamma=1.0,           # Sem desconto (horizonte finito)
-    lambda_=0.95,        # GAE smoothing (ótimo)
+    gamma=1.0,           # Sans remise (horizon fini)
+    lambda_=0.95,        # GAE smoothing (optimal)
     clip_ratio=0.2,      # PPO clipping
-    entropy_coef=0.01,   # Exploração
-    epochs=5,            # Múltiplas passes
+    entropy_coef=0.01,   # Exploration
+    epochs=5,            # Passages multiples
 )
 ```
 
-### Loop de Treinamento
+### Boucle d'Entraînement
 
 ```python
-# Coleta experiência
-for step in range(1440):  # Um dia
+# Collecte expérience
+for step in range(1440):  # Un jour
     action, log_prob, value = agent.select_action(obs)
     obs, reward, done, _ = env.step(action)
     agent.store_transition(obs, action, reward, obs, done, log_prob)
 
-# Atualiza usando PPO+GAE
+# Met à jour avec PPO+GAE
 stats = agent.update(batch_size=256)
 print(f"Actor Loss: {stats['actor_loss']:.4f}")
 print(f"Entropy: {stats['entropy']:.4f}")
@@ -348,10 +354,10 @@ print(f"Entropy: {stats['entropy']:.4f}")
 
 ---
 
-## 9. Próximas Melhorias
+## 9. Améliorations Futures
 
-- [ ] Substituir numpy por PyTorch (auto-diff, GPU)
-- [ ] Adicionar diagnostics (histogramas de ratio PPO)
-- [ ] Implementar Double PPO (dois critic networks)
-- [ ] Adicionar policy decay/cooling schedule
-- [ ] Testar com dados reais EURUSD
+- [ ] Remplacer numpy par PyTorch (auto-diff, GPU)
+- [ ] Ajouter diagnostics (histogrammes de ratio PPO)
+- [ ] Implémenter Double PPO (deux critic networks)
+- [ ] Ajouter policy decay/cooling schedule
+- [ ] Tester avec données réelles EURUSD
