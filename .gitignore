@@ -22,6 +22,7 @@ env/
 
 # Editor
 .vscode/
+!.vscode/settings.json
 .idea/
 *.swp
 *~

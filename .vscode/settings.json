@@ -1,0 +1,7 @@
+{
+  "markdownlint.ignore": [
+    ".markdownlintrc",
+    ".markdownlintrc.json",
+    ".markdownlintignore"
+  ]
+}
