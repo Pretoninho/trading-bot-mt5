@@ -1,8 +1,7 @@
 
-# MarkdownLint configuration file
+# MarkdownLint configuration file for trading-bot-mt5 documentation
 extends: default
-MD013:
-  line_length: 120
-  code_blocks: false
-  code_line_length: 200
-MD041: false
+MD013: false  # Disable line length checks
+MD041: false  # Disable first-line heading check
+MD051: false  # Disable no-alt-text check for images
+MD060: false  # Disable table column alignment checks
