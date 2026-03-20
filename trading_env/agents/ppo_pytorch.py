@@ -26,18 +26,21 @@ class ReplayBuffer:
     Circular buffer for storing trajectories.
     
     Stores transitions and provides efficient batching for PPO updates.
+    Supports flexible observation dimensions (391 base or 456 with engineered features).
     """
     
-    def __init__(self, max_size: int = 2048):
+    def __init__(self, max_size: int = 2048, observation_dim: int = 391):
         """
         Initialize replay buffer.
         
         Args:
             max_size: Maximum number of transitions to store
+            observation_dim: Dimension of observations (391 base, 456 with features)
         """
         self.max_size = max_size
+        self.observation_dim = observation_dim
         self.buffer = {
-            'observations': np.zeros((max_size, 391)),
+            'observations': np.zeros((max_size, observation_dim)),
             'actions': np.zeros(max_size, dtype=np.int64),
             'rewards': np.zeros(max_size),
             'values': np.zeros(max_size),
@@ -207,8 +210,8 @@ class PPOAgentPyTorch:
         self.epochs = epochs
         self.batch_size = batch_size
         
-        # Trajectory buffer
-        self.buffer = ReplayBuffer(max_size=2048)
+        # Trajectory buffer with flexible observation dimension
+        self.buffer = ReplayBuffer(max_size=2048, observation_dim=observation_dim)
         
         # Logging
         self.log_dir = log_dir or f"./logs/ppo_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
