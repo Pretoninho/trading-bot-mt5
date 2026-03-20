@@ -30,9 +30,7 @@ from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).parent))
 
-from trading_env.env.trading_env import TradingEnvironment
-from checkpoints.production.monitoring_dashboard import IntegratedDashboard
-from trading_env.utils.position_sizing import calculate_position_size
+from monitoring_dashboard import IntegratedDashboard
 
 
 # ============================================================================
