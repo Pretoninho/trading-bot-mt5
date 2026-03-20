@@ -381,10 +381,86 @@ Shape: `(391,)` = 64 bars × 6 features + 7 scalars.
 
 ---
 
+## Production Monitoring (Phase 6.4)
+
+Complete production-ready monitoring and risk management system:
+
+- **Risk Manager**: Position sizing (2% risk), daily loss limits (-5%), drawdown protection (15%)
+- **Production Monitor**: Equity tracking, trade analysis, performance metrics
+- **Metrics Collector**: Training metrics, episode tracking, TensorBoard export
+- **Integrated Dashboard**: Unified monitoring with real-time alerts
+
+### Quick Start
+
+```python
+from monitoring_dashboard import IntegratedDashboard
+
+dashboard = IntegratedDashboard(initial_equity=10000)
+
+# Request trade approval (validates risk limits)
+approval = dashboard.request_trade(
+    entry_price=1.0700, direction="LONG",
+    stop_loss=1.0695, take_profit=1.0710
+)
+
+if approval["approved"]:
+    # ... execute trade ...
+    dashboard.record_trade(1, 1.0700, 1.0705, pnl=50, bars_held=60)
+    dashboard.update_equity(10050)
+```
+
+**Resources**:
+- `QUICK_START_MONITORING.md` — 5-minute guide
+- `MONITORING_DEPLOYMENT_GUIDE.md` — Full documentation
+- `tests/test_monitoring.py` — 23 comprehensive tests (149 total)
+
+---
+
+## Risk Management Dashboard (Phase 6.5)
+
+Real-time Streamlit dashboard for complete trading visibility:
+
+- **Real-Time Equity Curve** — Interactive chart showing account balance over time
+- **Daily P&L Display** — Color-coded gauge showing profit/loss and risk status
+- **Drawdown Monitor** — Historical drawdown visualization with limit lines
+- **Position Management** — Current open positions with entry/exit details
+- **Risk Status Cards** — Visual indicators for daily loss limit, drawdown, positions
+- **Performance Analytics** — Win rate, profit factor, Sharpe ratio, trade statistics
+- **Alert System** — Real-time notifications for violations and warnings
+
+### Quick Start
+
+```bash
+# Install dependencies
+pip install streamlit plotly
+
+# Start dashboard
+streamlit run dashboard_app.py
+
+# Access at: http://localhost:8501
+```
+
+### Features
+
+- **Auto-Refresh**: 1-second real-time updates (configurable)
+- **Manual Refresh**: Click "Refresh Now" for immediate update
+- **Risk Display**: Shows distance to all risk limits (visual color coding)
+- **Integration**: Direct connection to IntegratedDashboard monitoring system
+- **Responsive**: Works on all screen sizes and browsers
+
+**Resources**:
+- `DASHBOARD_QUICK_START.md` — 5-minute setup guide
+- `DASHBOARD_DEPLOYMENT_GUIDE.md` — Complete technical documentation
+- `tests/test_dashboard.py` — 29 comprehensive tests
+
+---
+
 ## Running tests
 
 ```bash
-pytest tests/test_smoke.py -v
+pytest tests/ -v                          # All tests (178)
+pytest tests/test_monitoring.py -v        # Monitoring tests (23)
+pytest tests/test_dashboard.py -v         # Dashboard tests (29)
 ```
 
 ---
