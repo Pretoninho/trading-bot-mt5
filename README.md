@@ -165,39 +165,39 @@ This environment is formulated as a **finite-horizon Markov Decision Process** f
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  S(t) = State                                                   │
-│  (391D = 384 bar features + 7 context)                         │
+│  (391D = 384 bar features + 7 context)                          │
 │     │                                                           │
-│     ├─ h(t): 64 bars × 6 features (OHLC rets, spread, ATR14)  │
-│     └─ c(t): 7 context (tradable_now, safe_week, position...) │
+│     ├─ h(t): 64 bars × 6 features (OHLC rets, spread, ATR14)    │
+│     └─ c(t): 7 context (tradable_now, safe_week, position...)   │
 │     │                                                           │
 │     ↓                                                           │
 │  Agent's Neural Network:                                        │
-│  π_θ(·|s) = Softmax(Actor Output)  ← Policy (action probs)    │
-│  V_φ(s)   = Critic Output           ← Value (state eval)       │
+│  π_θ(·|s) = Softmax(Actor Output)  ← Policy (action probs)      │
+│  V_φ(s)   = Critic Output           ← Value (state eval)        │
 │     │                                                           │
 │     ↓                                                           │
-│  a(t) ∈ {0,1,2,3,4,5}  ← Action sampled or argmax             │
-│  │ HOLD│LONG│SHORT│CLOSE│PROTECT│MANAGE_TP│                   │
+│  a(t) ∈ {0,1,2,3,4,5}  ← Action sampled or argmax               │
+│  │ HOLD│LONG│SHORT│CLOSE│PROTECT│MANAGE_TP│                     │
 │     │                                                           │
 │     ↓                                                           │
 │  Environment.step(a(t)):                                        │
-│  • Apply action (subject to gating constraints)                │
+│  • Apply action (subject to gating constraints)                 │
 │  • Mark-to-market position                                      │
 │  • Check SL (close if hit)                                      │
 │  • Check TP (partial close if hit)                              │
 │     │                                                           │
-│     ├─ Next bar price: p(t+1)                                  │
+│     ├─ Next bar price: p(t+1)                                   │
 │     ├─ Realized PnL: π(t)                                       │
 │     └─ Unrealized value: u(t)                                   │
 │     │                                                           │
 │     ↓                                                           │
 │  r(t) = Reward                                                  │
-│  Primary: ΔEquity(t) / Equity(t-1)   ← Profit/loss %           │
-│  Penalty: -10⁻⁴ × 𝟙[invalid action]   ← Action enforcement    │
+│  Primary: ΔEquity(t) / Equity(t-1)   ← Profit/loss %            │
+│  Penalty: -10⁻⁴ × 𝟙[invalid action]   ← Action enforcement      │
 │     │                                                           │
 │     ↓                                                           │
 │  S(t+1) = Next State                                            │
-│  (Updated bars, position state, equity)                        │
+│  (Updated bars, position state, equity)                         │
 │     │                                                           │
 │     ↓                                                           │
 │  Check Termination:                                             │
