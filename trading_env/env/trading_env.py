@@ -5,8 +5,10 @@ Gymnasium-compatible EURUSD M1 trading environment.
 
 Episode
 -------
-One UTC calendar day.  Terminates early when equity reaches +2 % or -2 %
-relative to start-of-day equity.
+One UTC calendar day, running from **08:00 UTC** through **22:00 UTC**.
+Terminates early when equity reaches +2 % or -2 % relative to start-of-day
+equity (``equity_day_start``).  The 14-hour window (840 M1 bars) aligns with
+the tradable window defined in :mod:`~trading_env.gating.tradable_window`.
 
 Actions (discrete)
 ------------------
@@ -106,6 +108,10 @@ ATR_SL_MULTIPLIER = 2.0
 TP1_R = 1.0
 TP2_R = 2.0
 PARTIAL_CLOSE_FRACTION = 0.25  # each TP closes 25 % of initial lots
+
+# Episode time window (minutes since midnight, UTC)
+EPISODE_START_MIN = 8 * 60    # 08:00 UTC — episode begins here
+EPISODE_END_MIN = 22 * 60     # 22:00 UTC — episode ends here
 
 WINDOW = 64  # observation bar-window size
 N_BAR_FEATURES = 6  # open_ret, high_ret, low_ret, close_ret, spread, atr14_norm
@@ -207,12 +213,22 @@ class EURUSDTradingEnv(gym.Env):
             idx = self.np_random.integers(0, len(all_days))
             day = all_days[idx]
 
-        self._day_indices = self.df.index[
-            self.df["dt"].dt.date == day
-        ].tolist()
+        # Episode window: 08:00–22:00 UTC (inclusive) on the chosen day.
+        # The observation look-back (64 bars) may use earlier bars from df,
+        # so we only restrict _day_indices (the bars the agent steps through).
+        # ``between`` defaults to inclusive on both ends, matching the tradable
+        # window definition where the 22:00 bar is the last tradable bar.
+        day_mask = self.df["dt"].dt.date == day
+        if "time_of_day" in self.df.columns:
+            window_mask = self.df["time_of_day"].between(
+                EPISODE_START_MIN, EPISODE_END_MIN
+            )
+            self._day_indices = self.df.index[day_mask & window_mask].tolist()
+        else:
+            self._day_indices = self.df.index[day_mask].tolist()
 
-        if len(self._day_indices) < WINDOW + 1:
-            # Not enough history — fall back to a full day if possible
+        if len(self._day_indices) < 1:
+            # No bars in the window — fall back so _get_obs() doesn't crash.
             self._day_indices = []
 
         self._step_idx = 0

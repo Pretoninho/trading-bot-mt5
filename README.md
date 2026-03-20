@@ -20,7 +20,8 @@ Key features:
 * **Full position management** — ATR-based SL, partial TP closes, break-even
   protection, and trailing stop via discrete actions.
 * **Gymnasium `Env`** — `reset()` / `step()` API with a 64-bar observation
-  window and early-stop on ±2 % daily equity change.
+  window, episode running **08:00–22:00 UTC** per day, and early-stop on
+  ±2 % daily equity change.
 
 ---
 
@@ -140,6 +141,7 @@ from trading_env.env.trading_env import EURUSDTradingEnv
 # df must already have tradable_now, is_safe_week, has_breakout columns
 env = EURUSDTradingEnv(df, initial_equity=10_000.0, render_mode="human")
 
+# Episode resets at 08:00 UTC on the chosen day and runs through 22:00 UTC
 obs, info = env.reset(options={"day_date": date(2025, 1, 8)})
 print("Initial obs shape:", obs.shape)  # (391,)
 
