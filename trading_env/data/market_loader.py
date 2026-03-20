@@ -164,6 +164,16 @@ def _add_engineered_features(df: pd.DataFrame) -> pd.DataFrame:
         - trend_0 to trend_29: trend features
         - market_0 to market_14: market structure features
     """
+    # If dataframe too small for feature computation, add dummy features (all zeros)
+    if len(df) < 50:
+        for i in range(20):
+            df[f"vol_{i}"] = 0.0
+        for i in range(30):
+            df[f"trend_{i}"] = 0.0
+        for i in range(15):
+            df[f"market_{i}"] = 0.0
+        return df
+
     # Compute all feature groups
     vol_feat, trend_feat, market_feat = FeatureEngineer.compute_all_features(df)
 
