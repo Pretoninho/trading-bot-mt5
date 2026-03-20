@@ -291,6 +291,70 @@ class IntegratedDashboard:
         print(f"\nSession Duration: {duration}")
         print("=" * 100 + "\n")
     
+    def get_status(self) -> Dict:
+        """Get current dashboard status.
+        
+        Returns
+        -------
+        dict
+            Status information
+        """
+        rm_status = self.risk_manager.get_status()
+        violations = self.check_violations()
+        
+        return {
+            "current_loss": rm_status.get("daily_pnl", 0),
+            "current_gain": rm_status.get("session_pnl", 0),
+            "drawdown": rm_status.get("max_drawdown", 0),
+            "positions_open": len(self.risk_manager.open_positions),
+            "violations": [v for v in violations.get("equity_alerts", [])],
+            "alerts": [a["message"] for a in self.alerts_log[-10:]],
+            "open_positions": [
+                {
+                    "symbol": "EURUSD",
+                    "entry_price": p.entry_price,
+                    "current_price": p.entry_price,  # Placeholder
+                    "size": p.size,
+                    "pnl": 0,  # Placeholder
+                }
+                for p in self.risk_manager.open_positions
+            ],
+        }
+    
+    def get_rich_metrics(self) -> Dict:
+        """Get comprehensive metrics for dashboard.
+        
+        Returns
+        -------
+        dict
+            Rich metrics data
+        """
+        stats = self.metrics_collector.get_summary_stats()
+        rm_status = self.risk_manager.get_status()
+        
+        return {
+            "metrics": {
+                "trade_stats": {
+                    "total_trades": stats.get("total_trades", 0),
+                    "winning_trades": int(stats.get("total_trades", 0) * stats.get("win_rate", 0)),
+                    "losing_trades": int(stats.get("total_trades", 0) * (1 - stats.get("win_rate", 0))),
+                    "win_rate": stats.get("win_rate", 0) * 100,
+                    "avg_win": stats.get("avg_pnl", 0) if stats.get("win_rate", 0) > 0 else 0,
+                    "avg_loss": -stats.get("std_pnl", 0) if stats.get("win_rate", 0) < 1 else 0,
+                    "profit_factor": 1.0,  # Placeholder
+                    "trades": [
+                        {
+                            "pnl": t.get("pnl", 0), 
+                            "entry_price": t.get("entry", 0), 
+                            "exit_price": t.get("exit", 0)
+                        }
+                        for t in self.monitor.trades[-20:]  # Last 20 trades
+                    ],
+                },
+                "sharpe_ratio": stats.get("sharpe_ratio", 0),
+            },
+        }
+    
     def export_session_report(self) -> Path:
         """Export complete session report.
         
